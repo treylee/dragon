@@ -61,7 +61,7 @@ func (r *TestRunner) StartTest() {
 				r.threadCounter++
 				//logrus.Infof("Starting thread #%d", threadID)
 				r.runTest()
-			}(i + 1)
+			}(i + 1)// start the count from thread 1 insteadof0
 		}
 	}
 
