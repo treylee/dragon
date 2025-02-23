@@ -1,15 +1,18 @@
 package router
 
 import (
-	"github.com/gin-gonic/gin"
-	"gdragon/internal/handler"
+    "github.com/gin-contrib/cors"
+    "github.com/gin-gonic/gin"
+    "gdragon/internal/handler"
 )
 
 func SetupRouter() *gin.Engine {
-	r := gin.Default()
+    r := gin.Default()
 
-	r.POST("/start", handler.StartTest)
-	r.GET("/check", handler.TestStatus)
+    r.Use(cors.Default())
 
-	return r
+    r.POST("/start", handler.StartTest)
+    r.GET("/check", handler.TestStatus)
+
+    return r
 }
