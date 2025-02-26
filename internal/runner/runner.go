@@ -7,9 +7,9 @@ import (
 	"sort"
 	"sync"
 	"time"
+	"net/http"
 
 	"github.com/sirupsen/logrus"
-	
 )
 
 type TestRunner struct {
@@ -19,22 +19,27 @@ type TestRunner struct {
 	requestsPerSecond int
 	duration          time.Duration
 	threadCounter     int
+	testID            string 
 }
 
-func NewTestRunner(requestsPerSecond int, duration time.Duration) *TestRunner {
+func NewTestRunner(requestsPerSecond int, duration time.Duration, testID string) *TestRunner {
 	return &TestRunner{
 		running:           false,
 		metrics:           &metrics.TestMetrics{},
 		requestsPerSecond: requestsPerSecond,
 		duration:          duration,
 		threadCounter:     0,
+		testID:            testID, 
 	}
+}
+func (r *TestRunner) GetTestID() string {
+	return r.testID
 }
 
 func (r *TestRunner) StartTest() {
-	logrus.Infof("Starting Test")
+	logrus.Infof("Starting Test with testID: %s", r.testID)
 	r.running = true
-	r.metrics = &metrics.TestMetrics{} // Reset metrics
+	r.metrics = &metrics.TestMetrics{} 
 
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
@@ -43,10 +48,9 @@ func (r *TestRunner) StartTest() {
 	logrus.Infof("Test will run until: %v (duration: %v)", endTime, r.duration)
 
 	for time.Now().Before(endTime) && r.running {
-
 		<-ticker.C // Blocks until tick fires
 
-		logrus.Infof("Tick - Spawning %d threads", r.requestsPerSecond)
+		logrus.Infof("Tick - Spawning %d threads for testID: %s", r.requestsPerSecond, r.testID)
 
 		for i := 0; i < r.requestsPerSecond; i++ {
 			r.wg.Add(1)
@@ -59,9 +63,8 @@ func (r *TestRunner) StartTest() {
 				}()
 
 				r.threadCounter++
-				//logrus.Infof("Starting thread #%d", threadID)
 				r.runTest()
-			}(i + 1)// start the count from thread 1 insteadof0
+			}(i + 1) // Start the count from thread 1 instead of 0
 		}
 	}
 
@@ -69,32 +72,32 @@ func (r *TestRunner) StartTest() {
 	r.wg.Wait()
 
 	r.calculateFinalMetrics()
-	websocket.BroadcastMetrics(r.metrics)
-
+	websocket.BroadcastMetrics(r.testID, r.metrics)
+	websocket.NotifyTestCompletion(r.testID)
 }
-func (r *TestRunner) calculateFinalMetrics(){
-		// Calculate metrics after test
-		duration := time.Second * 10
-		r.metrics.RequestPerSecond = r.metrics.Requests / int(duration.Seconds())
-		r.metrics.AvgResponseTime = float64(r.metrics.ResponseTime) / float64(r.metrics.Requests)
+
+func (r *TestRunner) calculateFinalMetrics() {
+
+	duration := time.Second * 10
+	r.metrics.RequestPerSecond = r.metrics.Requests / int(duration.Seconds())
+	r.metrics.AvgResponseTime = float64(r.metrics.ResponseTime) / float64(r.metrics.Requests)
+
+	sort.Ints(r.metrics.ResponseTimes)
+	r.metrics.P50ResponseTime = utils.CalculatePercentile(r.metrics.ResponseTimes, 50)
+	r.metrics.P95ResponseTime = utils.CalculatePercentile(r.metrics.ResponseTimes, 95)
+	r.metrics.P99ResponseTime = utils.CalculatePercentile(r.metrics.ResponseTimes, 99)
 	
-		sort.Ints(r.metrics.ResponseTimes)
-		r.metrics.P50ResponseTime = utils.CalculatePercentile(r.metrics.ResponseTimes,50)
-		r.metrics.P95ResponseTime = utils.CalculatePercentile(r.metrics.ResponseTimes,95)
-		r.metrics.P99ResponseTime = utils.CalculatePercentile(r.metrics.ResponseTimes,99)
-	
-		totalRequests := r.metrics.Requests + r.metrics.FailedRequests
-		if totalRequests > 0 {
-			r.metrics.ErrorRate = (float64(r.metrics.FailedRequests) / float64(totalRequests)) * 100
-		}
-	
-		logrus.Infof("Test completed. Total Requests: %d, Failed Requests: %d", r.metrics.Requests, r.metrics.FailedRequests)
+	totalRequests := r.metrics.Requests + r.metrics.FailedRequests
+	if totalRequests > 0 {
+		r.metrics.ErrorRate = (float64(r.metrics.FailedRequests) / float64(totalRequests)) * 100
+	}
+
+	logrus.Infof("Test completed for testID: %s. Total Requests: %d, Failed Requests: %d", r.testID, r.metrics.Requests, r.metrics.FailedRequests)
 }
 
 func (r *TestRunner) runTest() {
 	start := time.Now()
-	time.Sleep(time.Millisecond * 200) // Simulated response time
-
+	resp,err := http.Get("https://httpbin.org/get")
 	responseTime := int(time.Since(start).Milliseconds())
 
 	r.metrics.Lock()
@@ -103,8 +106,16 @@ func (r *TestRunner) runTest() {
 	r.metrics.ResponseTime += responseTime // Update the ResponseTime field each time a response is recorded
 	r.metrics.Unlock()
 
-	// Send live metrics update
-	websocket.BroadcastMetrics(r.metrics)
+	if err != nil || resp.StatusCode >= 400 {
+		r.metrics.FailedRequests++
+		logrus.Warnf("Request failed: %v", err)
+	}
+
+	if resp != nil {
+		resp.Body.Close()
+	}
+
+	websocket.BroadcastMetrics(r.testID, r.metrics) 
 }
 
 func (r *TestRunner) IsRunning() bool {
