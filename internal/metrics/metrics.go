@@ -19,6 +19,8 @@ type TestMetrics struct {
 	CpuUsage          float64
 	MemoryUsage       float64
 	TestDuration      int
+	TestName          string
+	TestID			  string
 }
 
 func (m *TestMetrics) Lock() {

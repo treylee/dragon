@@ -1,13 +1,14 @@
 package runner
 
 import (
+	"gdragon/database/local"
 	"gdragon/internal/metrics"
-	"gdragon/internal/websocket"
 	"gdragon/internal/utils"
+	"gdragon/internal/websocket"
+	"net/http"
 	"sort"
 	"sync"
 	"time"
-	"net/http"
 
 	"github.com/sirupsen/logrus"
 )
@@ -20,9 +21,10 @@ type TestRunner struct {
 	duration          time.Duration
 	threadCounter     int
 	testID            string 
+	testName		  string
 }
 
-func NewTestRunner(requestsPerSecond int, duration time.Duration, testID string) *TestRunner {
+func NewTestRunner(requestsPerSecond int, duration time.Duration, testID string, testName string) *TestRunner {
 	return &TestRunner{
 		running:           false,
 		metrics:           &metrics.TestMetrics{},
@@ -30,6 +32,7 @@ func NewTestRunner(requestsPerSecond int, duration time.Duration, testID string)
 		duration:          duration,
 		threadCounter:     0,
 		testID:            testID, 
+		testName: 		   testName,
 	}
 }
 func (r *TestRunner) GetTestID() string {
@@ -40,6 +43,13 @@ func (r *TestRunner) StartTest() {
 	logrus.Infof("Starting Test with testID: %s", r.testID)
 	r.running = true
 	r.metrics = &metrics.TestMetrics{} 
+
+	db, err := local.SetupDatabase(r.testID)
+	if err != nil {
+		logrus.Errorf("Failed to set up database for testID %s: %v", r.testID, err)
+		return
+	}
+	defer db.Close()
 
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
@@ -74,6 +84,8 @@ func (r *TestRunner) StartTest() {
 	r.calculateFinalMetrics()
 	websocket.BroadcastMetrics(r.testID, r.metrics)
 	websocket.NotifyTestCompletion(r.testID)
+	//pass actual metrics instead of pointer
+	local.SaveTestResults(db, r.metrics)
 }
 
 func (r *TestRunner) calculateFinalMetrics() {
@@ -91,6 +103,11 @@ func (r *TestRunner) calculateFinalMetrics() {
 	if totalRequests > 0 {
 		r.metrics.ErrorRate = (float64(r.metrics.FailedRequests) / float64(totalRequests)) * 100
 	}
+	//add request predefined values.
+	r.metrics.TestID = r.testID
+	r.metrics.TestName = r.testName
+	r.metrics.RequestPerSecond = r.requestsPerSecond
+	r.metrics.TestDuration = int(r.duration)
 
 	logrus.Infof("Test completed for testID: %s. Total Requests: %d, Failed Requests: %d", r.testID, r.metrics.Requests, r.metrics.FailedRequests)
 }
