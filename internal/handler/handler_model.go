@@ -1,4 +1,4 @@
-package models
+package handler
 
 type StartTestRequest struct {
 	TestName         string        `json:"testName"`

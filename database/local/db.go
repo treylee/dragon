@@ -39,7 +39,7 @@ func SetupDatabase(testID string) (*sql.DB, error) {
 		p50_response_time INTEGER,
 		p95_response_time INTEGER,
 		p99_response_time INTEGER,
-		request_per_second INTEGER,
+		requests_per_second INTEGER,
 		avg_response_time FLOAT,
 		max_response_time INTEGER,
 		cpu_usage FLOAT,
@@ -62,10 +62,10 @@ func SetupDatabase(testID string) (*sql.DB, error) {
 
 func SaveTestResults(db *sql.DB, metrics *metrics.TestMetrics) error {
 	insertQuery := `
-	INSERT INTO test_results (test_id, requests, failed_requests, error_rate, p50_response_time, p95_response_time, p99_response_time, request_per_second, avg_response_time, max_response_time, cpu_usage, memory_usage, test_duration)
+	INSERT INTO test_results (test_id, requests, failed_requests, error_rate, p50_response_time, p95_response_time, p99_response_time, requests_per_second, avg_response_time, max_response_time, cpu_usage, memory_usage, test_duration)
 	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 	`
-	_, err := db.Exec(insertQuery, metrics.TestID, metrics.Requests, metrics.FailedRequests, metrics.ErrorRate, metrics.P50ResponseTime, metrics.P95ResponseTime, metrics.P99ResponseTime, metrics.RequestPerSecond, metrics.AvgResponseTime, metrics.MaxResponseTime, metrics.CpuUsage, metrics.MemoryUsage, metrics.TestDuration)
+	_, err := db.Exec(insertQuery, metrics.TestID, metrics.Requests, metrics.FailedRequests, metrics.ErrorRate, metrics.P50ResponseTime, metrics.P95ResponseTime, metrics.P99ResponseTime, metrics.RequestsPerSecond, metrics.AvgResponseTime, metrics.MaxResponseTime, metrics.CpuUsage, metrics.MemoryUsage, metrics.TestDuration)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"testId": metrics.TestID,
@@ -81,7 +81,7 @@ func SaveTestResults(db *sql.DB, metrics *metrics.TestMetrics) error {
 		"p50ResponseTime":   metrics.P50ResponseTime,
 		"p95ResponseTime":   metrics.P95ResponseTime,
 		"p99ResponseTime":   metrics.P99ResponseTime,
-		"requestsPerSecond": metrics.RequestPerSecond,
+		"requestsPerSecond": metrics.RequestsPerSecond,
 		"avgResponseTime":   metrics.AvgResponseTime,
 		"maxResponseTime":   metrics.MaxResponseTime,
 		"cpuUsage":          metrics.CpuUsage,

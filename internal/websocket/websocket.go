@@ -19,7 +19,7 @@ var (
 )
 
 func HandleConnections(w http.ResponseWriter, r *http.Request) {
-	testID := r.URL.Query().Get("testid") // Changed to match query parameter
+	testID := r.URL.Query().Get("testid") 
 	if testID == "" {
 		http.Error(w, "testID query parameter is required", http.StatusBadRequest)
 		return
@@ -83,7 +83,6 @@ func BroadcastMetrics(testID string, data interface{}) {
 	logrus.Infof("Broadcasted metrics for testID %s to %d clients", testID, len(clients[testID]))
 }
 
-// NotifyTestCompletion sends a final message indicating test completion and closes all connections
 func NotifyTestCompletion(testID string) {
 	completionMessage := map[string]interface{}{
 		"TestCompleted": true,
