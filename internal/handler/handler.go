@@ -5,6 +5,7 @@ import (
 	"github.com/google/uuid"
 	"net/http"
 	"sync"
+	"strconv"
 	"time"
 	"gdragon/internal/runner"
 	"github.com/sirupsen/logrus"
@@ -82,7 +83,15 @@ func TestStatus(c *gin.Context) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	testID := c.Param("testID")
+	testID := c.DefaultQuery("testID", "")
+
+	if testID == "" {
+		log.WithFields(logrus.Fields{
+			"testID": testID,
+		}).Error("Test ID is missing from the query string")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Test ID is required"})
+		return
+	}
 
 	testRunner, exists := testRunners[testID]
 	if !exists || !testRunner.IsRunning() {
@@ -92,6 +101,7 @@ func TestStatus(c *gin.Context) {
 
 	c.JSON(http.StatusOK, testRunner.GetMetrics())
 }
+
 
 func GetTests(c *gin.Context) {
 	testID := c.Query("testID")
@@ -106,6 +116,32 @@ func GetTests(c *gin.Context) {
 			"testID": testID,
 			"error":  err.Error(),
 		}).Error("Error retrieving test results")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve test results"})
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
+func GetPaginatedTests(c *gin.Context) {
+
+	offset, err := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid offset"})
+		return
+	}
+
+	limit, err := strconv.Atoi(c.DefaultQuery("limit", "8")) 
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid limit"})
+		return
+	}
+
+	results, err := local.GetAllTestResults(offset, limit) 
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Error("Error retrieving paginated test results")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve test results"})
 		return
 	}

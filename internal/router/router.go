@@ -21,8 +21,9 @@ func SetupRouter() *gin.Engine {
     }))
 
     r.POST("/start", handler.StartTest)
-    r.GET("/check", handler.TestStatus)
+    r.GET("/status", handler.TestStatus)
     r.GET("", handler.GetTests)
+    r.GET("/tests", handler.GetPaginatedTests)
 
     return r
 }

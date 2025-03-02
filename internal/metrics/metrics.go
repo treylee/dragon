@@ -24,6 +24,7 @@ type TestMetrics struct {
 	TestDuration      int
 	TestName          string
 	TestID            string
+	CreatedAt         string
 }
 
 func (m *TestMetrics) Lock() {

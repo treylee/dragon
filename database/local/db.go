@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"gdragon/internal/metrics"
+	
 
 	"github.com/sirupsen/logrus"
 	_ "github.com/mattn/go-sqlite3"
@@ -120,17 +121,17 @@ func GetTestResults(testId string) (*metrics.TestMetrics, error) {
 	selectQuery := `SELECT test_id, requests, failed_requests, error_rate, 
 	                       p50_response_time, p95_response_time, p99_response_time, 
 	                       requests_per_second, avg_response_time, max_response_time, 
-	                       cpu_usage, memory_usage, test_duration 
+	                       cpu_usage, memory_usage, test_duration, created_at
                     FROM test_results WHERE test_id = ?;`
 
 	row := db.QueryRow(selectQuery, testId)
 
 	var result metrics.TestMetrics
-
+	//maps the values from db to the result struct necessary 
 	err = row.Scan(&result.TestID, &result.Requests, &result.FailedRequests, &result.ErrorRate,
 		&result.P50ResponseTime, &result.P95ResponseTime, &result.P99ResponseTime,
 		&result.RequestsPerSecond, &result.AvgResponseTime, &result.MaxResponseTime,
-		&result.CpuUsage, &result.MemoryUsage, &result.TestDuration)
+		&result.CpuUsage, &result.MemoryUsage, &result.TestDuration, &result.CreatedAt)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -148,3 +149,68 @@ func GetTestResults(testId string) (*metrics.TestMetrics, error) {
 
 	return &result, nil
 }
+
+func GetAllTestResults(offset int, limit int) ([]metrics.TestMetrics, error) {
+	dir := "test_data" 
+
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read test directory: %v", err)
+	}
+
+	var results []metrics.TestMetrics
+	count := 0
+	for _, file := range files {
+		if !file.IsDir() && file.Name() != ".DS_Store" { 
+			testID := file.Name()[:len(file.Name())-3] 
+			db, err := dbConnection(testID)
+			if err != nil {
+				continue
+			}
+			defer db.Close()
+
+			query := `
+				SELECT test_id, requests, failed_requests, error_rate, 
+					   p50_response_time, p95_response_time, p99_response_time, 
+					   requests_per_second, avg_response_time, max_response_time, 
+					   cpu_usage, memory_usage, test_duration, created_at 
+				FROM test_results
+				ORDER BY created_at DESC 
+				LIMIT ? OFFSET ?;
+			`
+
+			rows, err := db.Query(query, limit, offset)
+			if err != nil {
+				return nil, err
+			}
+			defer rows.Close()
+
+			for rows.Next() {
+				var result metrics.TestMetrics
+				err := rows.Scan(
+					&result.TestID, &result.Requests, &result.FailedRequests, &result.ErrorRate,
+					&result.P50ResponseTime, &result.P95ResponseTime, &result.P99ResponseTime,
+					&result.RequestsPerSecond, &result.AvgResponseTime, &result.MaxResponseTime,
+					&result.CpuUsage, &result.MemoryUsage, &result.TestDuration, &result.CreatedAt,
+				)
+				if err != nil {
+					return nil, err
+				}
+				results = append(results, result)
+
+				count++
+				if count >= limit {
+					break
+				}
+			}
+		}
+	}
+
+	if len(results) == 0 {
+		return nil, fmt.Errorf("no test results found")
+	}
+
+	return results, nil
+}
+
+

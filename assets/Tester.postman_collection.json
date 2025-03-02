@@ -1,0 +1,251 @@
+{
+	"info": {
+		"_postman_id": "6a7033b8-239a-459a-8826-aa133539d92d",
+		"name": "Tester",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "19354394",
+		"_collection_link": "https://trey77.postman.co/workspace/Trey-Workspace~5ca9fab4-0906-4f69-989f-118d74580615/collection/19354394-6a7033b8-239a-459a-8826-aa133539d92d?action=share&source=collection_link&creator=19354394"
+	},
+	"item": [
+		{
+			"name": "startTest",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"",
+							"let response = pm.response.json();",
+							"",
+							"pm.environment.set(\"testID\", response.testID);",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "sk_test_51QLo6WBsR5frtF6sF9Qbam5H0uOlzbLhoasrAaZLObbpbbrts4HQk2nRrvyEVQvnfXqU2vxy7Ed3DuUDwXlZftFu00tjujLBC4",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Stripe-Signature",
+						"value": "t=1731774524,v1=3564da3e0e20e14ced127bc7b943cc9ca33311d703609bf3e9e94f93ccf8005a,v0=4c1510c58db4f86153b2f42444b6e7c48240d5e3f116fdd5b3d92f894f7ba298",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"testName\": \"11\",\n  \"requestPerSecond\": 1,\n  \"url\": \"1\",\n  \"duration\": 50\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/start",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"start"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "getTestByID",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "sk_test_51QLo6WBsR5frtF6sF9Qbam5H0uOlzbLhoasrAaZLObbpbbrts4HQk2nRrvyEVQvnfXqU2vxy7Ed3DuUDwXlZftFu00tjujLBC4",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Stripe-Signature",
+						"value": "t=1731774524,v1=3564da3e0e20e14ced127bc7b943cc9ca33311d703609bf3e9e94f93ccf8005a,v0=4c1510c58db4f86153b2f42444b6e7c48240d5e3f116fdd5b3d92f894f7ba298",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"paymentToken\": \"pm_card_visa\",\n  \"amount\" : 200\n}\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080?testID={{testID}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"query": [
+						{
+							"key": "testID",
+							"value": "{{testID}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "getTestStatus",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "sk_test_51QLo6WBsR5frtF6sF9Qbam5H0uOlzbLhoasrAaZLObbpbbrts4HQk2nRrvyEVQvnfXqU2vxy7Ed3DuUDwXlZftFu00tjujLBC4",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Stripe-Signature",
+						"value": "t=1731774524,v1=3564da3e0e20e14ced127bc7b943cc9ca33311d703609bf3e9e94f93ccf8005a,v0=4c1510c58db4f86153b2f42444b6e7c48240d5e3f116fdd5b3d92f894f7ba298",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"paymentToken\": \"pm_card_visa\",\n  \"amount\" : 200\n}\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/status?testID={{testID}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"status"
+					],
+					"query": [
+						{
+							"key": "testID",
+							"value": "{{testID}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "getAllTests",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "sk_test_51QLo6WBsR5frtF6sF9Qbam5H0uOlzbLhoasrAaZLObbpbbrts4HQk2nRrvyEVQvnfXqU2vxy7Ed3DuUDwXlZftFu00tjujLBC4",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Stripe-Signature",
+						"value": "t=1731774524,v1=3564da3e0e20e14ced127bc7b943cc9ca33311d703609bf3e9e94f93ccf8005a,v0=4c1510c58db4f86153b2f42444b6e7c48240d5e3f116fdd5b3d92f894f7ba298",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"paymentToken\": \"pm_card_visa\",\n  \"amount\" : 200\n}\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/tests?offset=0&limit=100",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"tests"
+					],
+					"query": [
+						{
+							"key": "offset",
+							"value": "0"
+						},
+						{
+							"key": "limit",
+							"value": "100"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
