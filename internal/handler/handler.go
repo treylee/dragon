@@ -8,6 +8,7 @@ import (
 	"time"
 	"gdragon/internal/runner"
 	"github.com/sirupsen/logrus"
+	"gdragon/database/local"
 
 )
 
@@ -93,16 +94,21 @@ func TestStatus(c *gin.Context) {
 }
 
 func GetTests(c *gin.Context) {
-	mu.Lock()
-	defer mu.Unlock()
-
-	tests := make([]gin.H, 0, len(testRunners))
-	for id, runner := range testRunners {
-		tests = append(tests, gin.H{
-			"testID": id,
-			"status": runner.IsRunning(),
-		})
+	testID := c.Query("testID")
+	if testID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "testID is required"})
+		return
 	}
 
-	c.JSON(http.StatusOK, tests)
+	results, err := local.GetTestResults(testID)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"testID": testID,
+			"error":  err.Error(),
+		}).Error("Error retrieving test results")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve test results"})
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
 }

@@ -74,7 +74,7 @@ func (r *TestRunner) fire() {
         resp.Body.Close()
     }
 
-    if atomic.LoadInt64(&r.metrics.Requests)%100 == 0 {
+    if atomic.LoadInt64(&r.metrics.Requests)%20 == 0 {
         websocket.BroadcastMetrics(r.testID, r.metrics)
     }
 }

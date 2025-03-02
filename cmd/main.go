@@ -13,7 +13,6 @@ import (
 func main() {
 
 	r := router.SetupRouter()
-
 	go websocket.StartServer("3001")
 
 	logrus.Infof("Starting server on port 8080")

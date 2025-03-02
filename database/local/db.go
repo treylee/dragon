@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	 "gdragon/internal/metrics"
+	"gdragon/internal/metrics"
 
 	"github.com/sirupsen/logrus"
 	_ "github.com/mattn/go-sqlite3"
@@ -12,9 +12,24 @@ import (
 
 var logger = logrus.New()
 
+func dbConnection(testId string) (*sql.DB, error) {
+	dir := "test_data"
+	dbFile := fmt.Sprintf("%s/%s.db", dir, testId)
+
+	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
+		return nil, fmt.Errorf("database file does not exist: %s", dbFile)
+	}
+
+	db, err := sql.Open("sqlite3", dbFile)
+	if err != nil {
+		logrus.Errorf("Error opening database file: %v", err)
+		return nil, err
+	}
+
+	return db, nil
+}
 
 func SetupDatabase(testID string) (*sql.DB, error) {
-
 	dir := "test_data"
 	dbFile := fmt.Sprintf("%s/%s.db", dir, testID)
 
@@ -92,40 +107,44 @@ func SaveTestResults(db *sql.DB, metrics *metrics.TestMetrics) error {
 	return nil
 }
 
-func GetTestResults(testId string) ([]metrics.TestMetrics, error) {
-	db, err := SetupDatabase(testId)
+func GetTestResults(testId string) (*metrics.TestMetrics, error) {
+	db, err := dbConnection(testId)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"testId": testId,
-		}).Error("Error setting up database")
+		}).Error("Error opening database")
 		return nil, err
 	}
 	defer db.Close()
 
-	selectQuery := `SELECT * FROM test_results WHERE test_id = ?;`
-	rows, err := db.Query(selectQuery, testId)
+	selectQuery := `SELECT test_id, requests, failed_requests, error_rate, 
+	                       p50_response_time, p95_response_time, p99_response_time, 
+	                       requests_per_second, avg_response_time, max_response_time, 
+	                       cpu_usage, memory_usage, test_duration 
+                    FROM test_results WHERE test_id = ?;`
+
+	row := db.QueryRow(selectQuery, testId)
+
+	var result metrics.TestMetrics
+
+	err = row.Scan(&result.TestID, &result.Requests, &result.FailedRequests, &result.ErrorRate,
+		&result.P50ResponseTime, &result.P95ResponseTime, &result.P99ResponseTime,
+		&result.RequestsPerSecond, &result.AvgResponseTime, &result.MaxResponseTime,
+		&result.CpuUsage, &result.MemoryUsage, &result.TestDuration)
+
 	if err != nil {
+		if err == sql.ErrNoRows {
+			logger.WithFields(logrus.Fields{
+				"testId": testId,
+			}).Info("No test results found for the given testId")
+			return nil, nil
+		}
 		logger.WithFields(logrus.Fields{
 			"testId": testId,
 			"error":  err.Error(),
-		}).Error("Error querying test results")
+		}).Error("Error scanning row")
 		return nil, err
 	}
-	defer rows.Close()
 
-	var results []metrics.TestMetrics
-	for rows.Next() {
-		var result metrics.TestMetrics
-		//err := rows.Scan(&result.ID, &result.TestID, &result.Requests, &result.FailedRequests, &result.ErrorRate, &result.P50ResponseTime, &result.P95ResponseTime, &result.P99ResponseTime, &result.RequestPerSecond, &result.AvgResponseTime, &result.MaxResponseTime, &result.CpuUsage, &result.MemoryUsage, &result.TestDuration, &result.CreatedAt)
-		if err != nil {
-			logger.WithFields(logrus.Fields{
-				"testId": testId,
-				"error":  err.Error(),
-			}).Error("Error scanning row")
-			return nil, err
-		}
-		results = append(results, result)
-	}
-	return results, nil
+	return &result, nil
 }
-
