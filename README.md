@@ -2,6 +2,22 @@
 
 This system is designed to execute performance tests and display real-time metrics. The React frontend acts as both the **Test Initiator** and the **Performance Dashboard**. When the test is started, the Go backend handles the performance test, and the React frontend updates with live metrics during the test.
 
+
+Alternatively, you can hit these endpoints directly:
+
+- `POST /start` - Starts the performance test.
+- `GET /status?testID={{testID}}` - Gets the current status of the test.
+- `GET /tests?offset=0&limit=8` - Fetches paginated results of the tests.
+
+## Postman Collection
+
+You can download the Postman collection to get started with the available API endpoints for this system.
+
+[Download Postman Collection](./assets/Tester.postman_collection)
+
+To Monitor the live streaming results create a seperate websocket postman script
+- ws://localhost:3001/ws?testid={{testID}}
+
 ```mermaid
 graph LR
     A[React Frontend] -->|POST /start| B[Go Backend]
@@ -42,21 +58,3 @@ graph LR
     class H test,textColor;
     class I frontend,textColor;
     class J test,textColor;
-
-Alternatively, you can hit these endpoints directly:
-
-- `POST /start` - Starts the performance test.
-- `GET /status?testID={{testID}}` - Gets the current status of the test.
-- `GET /tests?offset=0&limit=8` - Fetches paginated results of the tests.
-
-## Postman Collection
-
-You can download the Postman collection to get started with the available API endpoints for this system.
-
-[Download Postman Collection](./assets/Tester.postman_collection)
-
-Once you have the collection, you can import it into Postman and use it to interact with the API directly. 
-
-To Monitor the live streaming results create a seperate websocket postman script
-- ws://localhost:3001/ws?testid={{testID}}
-
