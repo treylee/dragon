@@ -13,7 +13,7 @@ Alternatively, you can hit these endpoints directly:
 
 You can download the Postman collection to get started with the available API endpoints for this system.
 
-[Download Postman Collection](./assets/Tester.postman_collection)
+[Download Postman Collection](./assets/Tester.postman_collection.json)
 
 To Monitor the live streaming results create a seperate websocket postman script
 - ws://localhost:3001/ws?testid={{testID}}

@@ -15,7 +15,7 @@ func (r *TestRunner) StartTest() {
     logrus.Infof("Starting Test: %s", r.testID)
     r.running.Store(true)
     r.metrics = &metrics.TestMetrics{}
-
+    r.metrics.CreatedAt = time.Now().Format("2006-01-02 15:04:05")
     db, err := local.SetupDatabase(r.testID)
     if err != nil {
         logrus.Errorf("Failed to set up database for test %s: %v", r.testID, err)
@@ -96,7 +96,9 @@ func (r *TestRunner) calculateFinalMetrics() {
     r.metrics.TestName = r.testName
     r.metrics.RequestsPerSecond = r.requestsPerSecond
     r.metrics.TestDuration = int(r.duration.Seconds())
-
+    r.metrics.TestCompleted = true
+    r.metrics.TestName = r.testName
+    r.metrics.Url = r.url
     logrus.Infof("Test Completed: %s | Total Requests: %d | Failed Requests: %d", r.testID, totalRequests, failedRequests)
 }
 

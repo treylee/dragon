@@ -21,6 +21,8 @@ type TestMetrics struct {
 	P99ResponseTime   int
 	CpuUsage          float64
 	MemoryUsage       float64
+	Url               string
+	TestCompleted     bool
 	TestDuration      int
 	TestName          string
 	TestID            string

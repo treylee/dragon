@@ -10,7 +10,7 @@ import (
 )
 
 func TestRunner_RealisticRequestSimulation(t *testing.T) {
-	testRunner := NewTestRunner(10, time.Second*10, "testID","testName")
+	testRunner := NewTestRunner(10, time.Second*10, "testID","testName","url")
 
 	for i := 0; i < 150; i++ {
 		testRunner.metrics.Lock()

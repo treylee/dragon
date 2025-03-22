@@ -34,10 +34,8 @@ func SetupDatabase(testID string) (*sql.DB, error) {
 	dir := "test_data"
 	dbFile := fmt.Sprintf("%s/%s.db", dir, testID)
 
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		logrus.Errorf("Failed to create directory %s: %v", dir, err)
-		return nil, fmt.Errorf("failed to create directory: %v", err)
-	}
+	// No need to create the directory since it has been manually created
+	// and will be mounted as a volume to the container
 
 	db, err := sql.Open("sqlite3", dbFile)
 	if err != nil {
@@ -45,6 +43,7 @@ func SetupDatabase(testID string) (*sql.DB, error) {
 		return nil, err
 	}
 
+	// Create the table if it doesn't exist
 	createTableQuery := `
 	CREATE TABLE IF NOT EXISTS test_results (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,7 +60,10 @@ func SetupDatabase(testID string) (*sql.DB, error) {
 		cpu_usage FLOAT,
 		memory_usage FLOAT,
 		test_duration INTEGER,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		test_completed BOOLEAN,
+		url String,
+		test_name String,
+		created_at DATETIME
 	);
 	`
 
@@ -76,12 +78,13 @@ func SetupDatabase(testID string) (*sql.DB, error) {
 	return db, nil
 }
 
+
 func SaveTestResults(db *sql.DB, metrics *metrics.TestMetrics) error {
 	insertQuery := `
-	INSERT INTO test_results (test_id, requests, failed_requests, error_rate, p50_response_time, p95_response_time, p99_response_time, requests_per_second, avg_response_time, max_response_time, cpu_usage, memory_usage, test_duration)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+	INSERT INTO test_results (test_id, requests, failed_requests, error_rate, p50_response_time, p95_response_time, p99_response_time, requests_per_second, avg_response_time, max_response_time, cpu_usage, memory_usage, test_duration, test_completed, url, test_name,created_at)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 	`
-	_, err := db.Exec(insertQuery, metrics.TestID, metrics.Requests, metrics.FailedRequests, metrics.ErrorRate, metrics.P50ResponseTime, metrics.P95ResponseTime, metrics.P99ResponseTime, metrics.RequestsPerSecond, metrics.AvgResponseTime, metrics.MaxResponseTime, metrics.CpuUsage, metrics.MemoryUsage, metrics.TestDuration)
+	_, err := db.Exec(insertQuery, metrics.TestID, metrics.Requests, metrics.FailedRequests, metrics.ErrorRate, metrics.P50ResponseTime, metrics.P95ResponseTime, metrics.P99ResponseTime, metrics.RequestsPerSecond, metrics.AvgResponseTime, metrics.MaxResponseTime, metrics.CpuUsage, metrics.MemoryUsage, metrics.TestDuration, metrics.TestCompleted , metrics.Url, metrics.TestName, metrics.CreatedAt)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"testId": metrics.TestID,
@@ -103,6 +106,8 @@ func SaveTestResults(db *sql.DB, metrics *metrics.TestMetrics) error {
 		"cpuUsage":          metrics.CpuUsage,
 		"memoryUsage":       metrics.MemoryUsage,
 		"testDuration":      metrics.TestDuration,
+		"url":				 metrics.Url,
+		"testName":		     metrics.TestName,
 	}).Info("Test results saved successfully")
 
 	return nil
@@ -121,7 +126,7 @@ func GetTestResults(testId string) (*metrics.TestMetrics, error) {
 	selectQuery := `SELECT test_id, requests, failed_requests, error_rate, 
 	                       p50_response_time, p95_response_time, p99_response_time, 
 	                       requests_per_second, avg_response_time, max_response_time, 
-	                       cpu_usage, memory_usage, test_duration, created_at
+	                       cpu_usage, memory_usage, test_duration, test_completed, url, test_name, created_at
                     FROM test_results WHERE test_id = ?;`
 
 	row := db.QueryRow(selectQuery, testId)
@@ -131,7 +136,7 @@ func GetTestResults(testId string) (*metrics.TestMetrics, error) {
 	err = row.Scan(&result.TestID, &result.Requests, &result.FailedRequests, &result.ErrorRate,
 		&result.P50ResponseTime, &result.P95ResponseTime, &result.P99ResponseTime,
 		&result.RequestsPerSecond, &result.AvgResponseTime, &result.MaxResponseTime,
-		&result.CpuUsage, &result.MemoryUsage, &result.TestDuration, &result.CreatedAt)
+		&result.CpuUsage, &result.MemoryUsage, &result.TestDuration, &result.TestCompleted,&result.Url, &result.TestName, &result.CreatedAt)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -173,7 +178,7 @@ func GetAllTestResults(offset int, limit int) ([]metrics.TestMetrics, error) {
 				SELECT test_id, requests, failed_requests, error_rate, 
 					   p50_response_time, p95_response_time, p99_response_time, 
 					   requests_per_second, avg_response_time, max_response_time, 
-					   cpu_usage, memory_usage, test_duration, created_at 
+					   cpu_usage, memory_usage, test_duration, test_completed, url, test_name, created_at 
 				FROM test_results
 				ORDER BY created_at DESC 
 				LIMIT ? OFFSET ?;
@@ -181,7 +186,7 @@ func GetAllTestResults(offset int, limit int) ([]metrics.TestMetrics, error) {
 
 			rows, err := db.Query(query, limit, offset)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to execute query: %v", err)
 			}
 			defer rows.Close()
 
@@ -191,11 +196,13 @@ func GetAllTestResults(offset int, limit int) ([]metrics.TestMetrics, error) {
 					&result.TestID, &result.Requests, &result.FailedRequests, &result.ErrorRate,
 					&result.P50ResponseTime, &result.P95ResponseTime, &result.P99ResponseTime,
 					&result.RequestsPerSecond, &result.AvgResponseTime, &result.MaxResponseTime,
-					&result.CpuUsage, &result.MemoryUsage, &result.TestDuration, &result.CreatedAt,
+					&result.CpuUsage, &result.MemoryUsage, &result.TestDuration, &result.TestCompleted,
+					&result.Url, &result.TestName, &result.CreatedAt,
 				)
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("failed to scan row: %v", err)
 				}
+
 				results = append(results, result)
 
 				count++
@@ -203,9 +210,13 @@ func GetAllTestResults(offset int, limit int) ([]metrics.TestMetrics, error) {
 					break
 				}
 			}
+			if count >= limit {
+				break
+			}
 		}
 	}
 
+	// Ensure there are results found
 	if len(results) == 0 {
 		return nil, fmt.Errorf("no test results found")
 	}

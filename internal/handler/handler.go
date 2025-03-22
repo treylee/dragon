@@ -56,7 +56,7 @@ func StartTest(c *gin.Context) {
 
 	startTime := time.Now()
 
-	testRunner := runner.NewTestRunner(testRequest.RequestPerSecond, time.Second*time.Duration(testRequest.Duration), testID, testRequest.TestName)
+	testRunner := runner.NewTestRunner(testRequest.RequestPerSecond, time.Second*time.Duration(testRequest.Duration), testID, testRequest.TestName,testRequest.Url)
 
 	testRunners[testID] = testRunner
 
