@@ -26,7 +26,7 @@ jobs:
 
       # Set up AWS credentials and configure the IAM role via OIDC
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ env.ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
@@ -48,11 +48,15 @@ jobs:
           docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
 
+      # Update kubeconfig
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+
       # Deploy to EKS
       - name: Deploy to EKS
         uses: aws-actions/amazon-eks-deploy-action@v1.0.0
         with:
           cluster-name: ${{ env.EKS_CLUSTER_NAME }}
-          kubeconfig: ${{ secrets.KUBECONFIG }}
           deployment-name: ${{ env.DEPLOYMENT_NAME }}
           image-uri: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
