@@ -53,10 +53,8 @@ jobs:
         run: |
           aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
 
-      # Deploy to EKS
+      # Deploy to EKS using kubectl
       - name: Deploy to EKS
-        uses: aws-actions/amazon-eks-deploy-action@v1.0.0
-        with:
-          cluster-name: ${{ env.EKS_CLUSTER_NAME }}
-          deployment-name: ${{ env.DEPLOYMENT_NAME }}
-          image-uri: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
+        run: |
+          kubectl set image deployment/${{ env.DEPLOYMENT_NAME }} ${{ env.DEPLOYMENT_NAME }}=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
+          kubectl rollout status deployment/${{ env.DEPLOYMENT_NAME }}
