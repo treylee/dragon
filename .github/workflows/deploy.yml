@@ -24,15 +24,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get OIDC Token and Assume Role
-        run: |
-          export OIDC_TOKEN=$(curl -s --header "Authorization: Bearer $GITHUB_TOKEN" "https://token.actions.githubusercontent.com")
-          aws sts assume-role-with-web-identity \
-            --role-arn arn:aws:iam::469834453210:role/EKSGithubActions \
-            --role-session-name GitHubActionsSession \
-            --web-identity-token $OIDC_TOKEN \
-            --duration-seconds 3600
-
       # Set up AWS credentials and configure the IAM role via OIDC
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
