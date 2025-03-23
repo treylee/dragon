@@ -24,6 +24,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+        
       # Set up AWS credentials and configure the IAM role via OIDC
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
