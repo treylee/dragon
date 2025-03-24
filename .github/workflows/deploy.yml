@@ -8,7 +8,7 @@ env:
   AWS_REGION: us-west-1
   ECR_REPOSITORY: non-prod/go-dragon
   EKS_CLUSTER_NAME: go-dragon-ng
-  ROLE_ARN: arn:aws:iam::469834453210:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS
+  ROLE_ARN: arn:aws:iam::469834453210:role/github-actions-role
   DEPLOYMENT_NAME: go-dragon-deployment
 
 jobs:
