@@ -9,7 +9,7 @@ env:
   ECR_REPOSITORY: non-prod/go-dragon
   EKS_CLUSTER_NAME: go-dragon-ng
   ROLE_ARN: arn:aws:iam::469834453210:role/github-actions-role
-  DEPLOYMENT_NAME: go-dragon-deployment
+  DEPLOYMENT_NAME: metrics-server
 
 jobs:
   build-and-deploy:
