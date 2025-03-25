@@ -58,4 +58,4 @@ jobs:
       - name: Deploy to EKS
         run: |
           kubectl set image deployment/${{ env.DEPLOYMENT_NAME }} ${{ env.DEPLOYMENT_NAME }}=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
-          kubectl rollout status deployment/${{ env.DEPLOYMENT_NAME }}
+          kubectl rollout status deployment/metrics-server -n kube-system
